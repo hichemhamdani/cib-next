@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
+import ReCAPTCHA from 'react-google-recaptcha'
 import { useCart } from '@/lib/cart-context'
 import type { Customer } from '@/lib/types'
 
@@ -15,10 +16,13 @@ const WILAYAS = [
   'Aïn Témouchent', 'Ghardaïa', 'Relizane',
 ]
 
+const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''
+
 export default function CheckoutPage() {
   const { items, total, clearCart } = useCart()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const recaptchaRef = useRef<ReCAPTCHA>(null)
 
   const [form, setForm] = useState<Customer>({
     firstName: '',
@@ -47,30 +51,38 @@ export default function CheckoutPage() {
       return
     }
 
+    const recaptchaToken = recaptchaRef.current?.getValue()
+    if (!recaptchaToken) {
+      setError('Veuillez confirmer que vous n\'êtes pas un robot.')
+      return
+    }
+
     startTransition(async () => {
       try {
         const res = await fetch('/api/checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ customer: form, items, total }),
+          body: JSON.stringify({ customer: form, items, total, recaptchaToken }),
         })
 
         const data = await res.json()
 
         if (!res.ok || data.error) {
           setError(data.error ?? 'Une erreur est survenue. Veuillez réessayer.')
+          recaptchaRef.current?.reset()
           return
         }
 
-        // Redirect to SATIM payment page
         if (data.formUrl) {
           clearCart()
           window.location.href = data.formUrl
         } else {
           setError('Impossible d\'obtenir le lien de paiement SATIM.')
+          recaptchaRef.current?.reset()
         }
       } catch {
         setError('Erreur de connexion. Vérifiez votre connexion internet.')
+        recaptchaRef.current?.reset()
       }
     })
   }
@@ -232,13 +244,22 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            <div className="border-t border-gray-100 pt-4 mb-6">
+            <div className="border-t border-gray-100 pt-4 mb-4">
               <div className="flex justify-between items-center">
                 <span className="font-bold text-gray-800">Total</span>
                 <span className="font-bold text-xl text-green-700">
                   {total.toLocaleString('fr-DZ')} DA
                 </span>
               </div>
+            </div>
+
+            {/* reCAPTCHA */}
+            <div className="mb-4 flex justify-center">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={SITE_KEY}
+                hl="fr"
+              />
             </div>
 
             {error && (

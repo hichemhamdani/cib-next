@@ -2,8 +2,22 @@ import { satimRegisterOrder } from '@/lib/satim'
 import { createOrder, generateOrderId } from '@/lib/orders'
 import type { CartItem, Customer } from '@/lib/types'
 
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  const secret = process.env.RECAPTCHA_SECRET_KEY
+  if (!secret) return false
+
+  const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ secret, response: token }),
+  })
+
+  const data = await res.json() as { success: boolean }
+  return data.success === true
+}
+
 export async function POST(request: Request) {
-  let body: { customer: Customer; items: CartItem[]; total: number }
+  let body: { customer: Customer; items: CartItem[]; total: number; recaptchaToken?: string }
 
   try {
     body = await request.json()
@@ -11,10 +25,20 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Corps de requête invalide.' }, { status: 400 })
   }
 
-  const { customer, items, total } = body
+  const { customer, items, total, recaptchaToken } = body
 
   if (!customer || !items?.length || !total) {
     return Response.json({ error: 'Données de commande manquantes.' }, { status: 400 })
+  }
+
+  // Verify reCAPTCHA
+  if (!recaptchaToken) {
+    return Response.json({ error: 'Veuillez confirmer que vous n\'êtes pas un robot.' }, { status: 400 })
+  }
+
+  const captchaValid = await verifyRecaptcha(recaptchaToken)
+  if (!captchaValid) {
+    return Response.json({ error: 'Vérification anti-bot échouée. Veuillez réessayer.' }, { status: 400 })
   }
 
   if (total < 50) {
@@ -24,7 +48,6 @@ export async function POST(request: Request) {
     )
   }
 
-  // Generate unique order ID (like WP plugin: orderId + rand)
   const orderId = generateOrderId()
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000'
 
@@ -43,7 +66,6 @@ export async function POST(request: Request) {
       return Response.json({ error: satimError }, { status: 502 })
     }
 
-    // Save order in MongoDB
     await createOrder({
       id: orderId,
       orderNumber: orderId,
