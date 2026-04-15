@@ -1,14 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useCart } from '@/lib/cart-context'
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, total, itemCount } = useCart()
+  const searchParams = useSearchParams()
+  const paymentError = searchParams.get('error')
 
   if (items.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center">
+        {paymentError && <PaymentErrorBanner message={paymentError} />}
         <div className="text-7xl mb-6">🛒</div>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Votre panier est vide</h1>
         <p className="text-gray-500 mb-8">Ajoutez des produits pour commencer vos achats.</p>
@@ -24,6 +28,7 @@ export default function CartPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      {paymentError && <PaymentErrorBanner message={paymentError} />}
       <h1 className="text-2xl font-bold text-gray-800 mb-8">
         Mon panier{' '}
         <span className="text-base font-normal text-gray-500">({itemCount} article{itemCount > 1 ? 's' : ''})</span>
@@ -129,6 +134,26 @@ export default function CartPage() {
               Continuer mes achats
             </Link>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PaymentErrorBanner({ message }: { message: string }) {
+  return (
+    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex gap-3 items-start text-left">
+      <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+      <div>
+        <p className="font-semibold text-red-800 text-sm mb-0.5">Paiement échoué</p>
+        <p className="text-red-700 text-sm">{message}</p>
+        <div className="mt-2 text-xs text-red-600 space-y-0.5">
+          <p>• Vérifiez votre solde et vos plafonds de paiement en ligne</p>
+          <p>• Numéro vert SATIM : <strong>3020</strong></p>
         </div>
       </div>
     </div>

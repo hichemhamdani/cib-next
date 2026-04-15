@@ -1,6 +1,7 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { satimConfirmOrder } from '@/lib/satim'
-import { updateOrder } from '@/lib/orders'
+import { updateOrder, getOrderByOrderNumber } from '@/lib/orders'
 
 interface PageProps {
   searchParams: Promise<{ orderId?: string; order_id?: string }>
@@ -9,13 +10,10 @@ interface PageProps {
 export default async function PaymentReturnPage({ searchParams }: PageProps) {
   const { orderId, order_id } = await searchParams
 
-  // Missing params
   if (!orderId || !order_id) {
-    return <ErrorView message="Paramètres de retour invalides." />
+    redirect('/cart?error=' + encodeURIComponent('Paramètres de retour invalides.'))
   }
 
-  // Confirm with SATIM
-  let confirmed = false
   let errorMessage = 'Erreur inconnue lors de la confirmation.'
 
   try {
@@ -23,99 +21,117 @@ export default async function PaymentReturnPage({ searchParams }: PageProps) {
     const code = String(response.ErrorCode)
 
     if (code === '0') {
-      confirmed = true
-      // Update order status in MongoDB
       await updateOrder(order_id, { status: 'paid', satimOrderId: orderId })
     } else {
-      if (response.params?.respCode_desc) {
-        errorMessage = response.params.respCode_desc
-      } else if (response.actionCodeDescription) {
-        errorMessage = response.actionCodeDescription
-      } else if (response.ErrorMessage) {
-        errorMessage = response.ErrorMessage
-      }
+      if (response.params?.respCode_desc) errorMessage = response.params.respCode_desc
+      else if (response.actionCodeDescription) errorMessage = response.actionCodeDescription
+      else if (response.ErrorMessage) errorMessage = response.ErrorMessage
+
+      redirect('/cart?error=' + encodeURIComponent(errorMessage))
     }
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : 'Impossible de contacter SATIM.'
+    redirect('/cart?error=' + encodeURIComponent(errorMessage))
   }
 
-  if (!confirmed) {
-    return <ErrorView message={errorMessage} />
-  }
+  // Fetch order details for the summary
+  const order = await getOrderByOrderNumber(order_id)
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+    <div className="max-w-2xl mx-auto px-4 py-12">
+      {/* Header succès */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6 text-center">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
           <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
           </svg>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Paiement réussi !</h1>
-        <p className="text-gray-500 mb-2">
-          Votre paiement a été confirmé avec succès via <strong>SATIM</strong>.
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          Merci {order?.customer.firstName} ! 🎉
+        </h1>
+        <p className="text-gray-500 text-sm">
+          Votre commande a été confirmée et votre paiement validé par <strong>SATIM</strong>.
         </p>
-        <p className="text-xs text-gray-400 mb-8 font-mono bg-gray-50 inline-block px-3 py-1 rounded-full">
+        <p className="text-xs text-gray-400 mt-3 font-mono bg-gray-50 inline-block px-3 py-1 rounded-full">
           Réf. SATIM : {orderId}
         </p>
+      </div>
 
-        <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-sm text-green-800 mb-8 text-left">
-          <p className="font-semibold mb-1">✅ Ce que vous venez de faire :</p>
-          <ul className="list-disc list-inside space-y-1 text-green-700">
-            <li>Paiement débité de votre carte CIB / Dahabia</li>
-            <li>Commande enregistrée et confirmée</li>
-            <li>Un email de confirmation vous sera envoyé</li>
-          </ul>
+      {/* Résumé commande */}
+      {order && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-800">Récapitulatif de la commande</h2>
+          </div>
+
+          {/* Articles */}
+          <div className="divide-y divide-gray-50">
+            {order.items.map(({ product, quantity }) => (
+              <div key={product.id} className="flex items-center gap-4 px-6 py-4">
+                <div className="w-12 h-12 bg-linear-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
+                  {product.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-800 text-sm truncate">{product.name}</p>
+                  <p className="text-xs text-gray-400">{product.category}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 mb-0.5">×{quantity}</p>
+                  <p className="font-semibold text-gray-900 text-sm">
+                    {(product.price * quantity).toLocaleString('fr-DZ')} DA
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Total */}
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+            <span className="font-bold text-gray-800">Total payé</span>
+            <span className="font-bold text-xl text-green-700">
+              {order.total.toLocaleString('fr-DZ')} DA
+            </span>
+          </div>
         </div>
+      )}
 
+      {/* Infos livraison */}
+      {order && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <h2 className="font-semibold text-gray-800 mb-4">Informations de livraison</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-gray-400 text-xs mb-0.5">Nom complet</p>
+              <p className="font-medium text-gray-800">{order.customer.firstName} {order.customer.lastName}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs mb-0.5">Téléphone</p>
+              <p className="font-medium text-gray-800">{order.customer.phone}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs mb-0.5">Wilaya</p>
+              <p className="font-medium text-gray-800">{order.customer.wilaya}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 text-xs mb-0.5">Email</p>
+              <p className="font-medium text-gray-800 truncate">{order.customer.email}</p>
+            </div>
+            <div className="col-span-2">
+              <p className="text-gray-400 text-xs mb-0.5">Adresse</p>
+              <p className="font-medium text-gray-800">{order.customer.address}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="text-center">
         <Link
           href="/"
-          className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-3 rounded-xl transition-colors"
+          className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold px-10 py-3 rounded-xl transition-colors"
         >
-          Retour à la boutique
+          Continuer mes achats
         </Link>
-      </div>
-    </div>
-  )
-}
-
-function ErrorView({ message }: { message: string }) {
-  return (
-    <div className="max-w-2xl mx-auto px-4 py-20 text-center">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10">
-        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </div>
-
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Échec de confirmation</h1>
-        <p className="text-gray-500 mb-6">{message}</p>
-
-        <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800 mb-8 text-left">
-          <p className="font-semibold mb-1">ℹ️ En cas de problème :</p>
-          <ul className="list-disc list-inside space-y-1 text-amber-700">
-            <li>Vérifiez votre solde CIB / Dahabia</li>
-            <li>Contactez le numéro vert SATIM</li>
-            <li>Réessayez dans quelques minutes</li>
-          </ul>
-        </div>
-
-        <div className="flex gap-3 justify-center">
-          <Link
-            href="/cart"
-            className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl transition-colors"
-          >
-            Retour au panier
-          </Link>
-          <Link
-            href="/"
-            className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
-          >
-            Accueil
-          </Link>
-        </div>
       </div>
     </div>
   )
