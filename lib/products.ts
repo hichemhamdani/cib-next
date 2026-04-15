@@ -1,0 +1,78 @@
+import type { Product } from './types'
+
+export const products: Product[] = [
+  {
+    id: 1,
+    name: 'Smartphone Android Pro',
+    price: 45000,
+    description: 'Smartphone haut de gamme avec 128GB de stockage, écran AMOLED 6.5"',
+    category: 'Électronique',
+    emoji: '📱',
+    stock: 15,
+  },
+  {
+    id: 2,
+    name: 'Écouteurs Bluetooth Sans Fil',
+    price: 4500,
+    description: 'Écouteurs TWS avec réduction de bruit active, autonomie 30h',
+    category: 'Électronique',
+    emoji: '🎧',
+    stock: 30,
+  },
+  {
+    id: 3,
+    name: 'Montre Connectée Sport',
+    price: 8900,
+    description: 'Smartwatch GPS, suivi santé, étanche 50m, autonomie 7 jours',
+    category: 'Électronique',
+    emoji: '⌚',
+    stock: 20,
+  },
+  {
+    id: 4,
+    name: 'Sac à Dos Laptop 15"',
+    price: 3200,
+    description: 'Sac multifonction imperméable avec port USB de charge intégré',
+    category: 'Mode',
+    emoji: '🎒',
+    stock: 50,
+  },
+  {
+    id: 5,
+    name: 'Parfum Oriental Musc',
+    price: 2800,
+    description: 'Eau de parfum aux notes de musc et oud, 100ml, made in Algeria',
+    category: 'Beauté',
+    emoji: '🌸',
+    stock: 40,
+  },
+  {
+    id: 6,
+    name: 'Machine à Café Expresso',
+    price: 12500,
+    description: 'Machine semi-automatique 15 bars, buse vapeur, reservoir 1.5L',
+    category: 'Maison',
+    emoji: '☕',
+    stock: 10,
+  },
+  {
+    id: 7,
+    name: 'Tablette Graphique',
+    price: 7800,
+    description: 'Tablette numérique A4 pour dessin et design, stylet inclus',
+    category: 'Électronique',
+    emoji: '🖊️',
+    stock: 12,
+  },
+  {
+    id: 8,
+    name: 'Huile d\'Argan Bio',
+    price: 1500,
+    description: 'Huile d\'argan 100% naturelle du Maghreb, 50ml, certifiée bio',
+    category: 'Beauté',
+    emoji: '🫙',
+    stock: 60,
+  },
+]
+
+export const categories = [...new Set(products.map((p) => p.category))]
