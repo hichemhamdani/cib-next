@@ -17,7 +17,7 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden hover:shadow-md transition-shadow">
       {/* Product image placeholder */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 h-40 flex items-center justify-center text-6xl">
+      <div className="bg-linear-to-br from-gray-50 to-gray-100 h-40 flex items-center justify-center text-6xl">
         {product.emoji}
       </div>
 
@@ -34,7 +34,10 @@ export default function ProductCard({ product }: { product: Product }) {
 
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-gray-900">
-            {product.price.toLocaleString('fr-DZ')} <span className="text-sm font-normal text-gray-500">DA</span>
+            {product.price === 0
+              ? <span className="text-green-600">Gratuit</span>
+              : <>{product.price.toLocaleString('fr-DZ')} <span className="text-sm font-normal text-gray-500">DA</span></>
+            }
           </span>
           <button
             onClick={handleAdd}

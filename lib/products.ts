@@ -73,6 +73,24 @@ export const products: Product[] = [
     emoji: '🫙',
     stock: 60,
   },
+  {
+    id: 9,
+    name: 'Guide PDF Gratuit',
+    price: 0,
+    description: 'Guide numérique offert — téléchargement immédiat après commande',
+    category: 'Test',
+    emoji: '📄',
+    stock: 999,
+  },
+  {
+    id: 10,
+    name: 'Produit Test 50 DA',
+    price: 50,
+    description: 'Produit de test au montant minimum accepté par SATIM (50 DA)',
+    category: 'Test',
+    emoji: '🧪',
+    stock: 999,
+  },
 ]
 
 export const categories = [...new Set(products.map((p) => p.category))]
