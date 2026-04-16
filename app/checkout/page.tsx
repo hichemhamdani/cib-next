@@ -17,9 +17,10 @@ const WILAYAS = [
 ]
 
 const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''
+const MOCK_MODE = process.env.NEXT_PUBLIC_SATIM_MOCK_MODE === 'true'
 
 export default function CheckoutPage() {
-  const { items, total, clearCart } = useCart()
+  const { items, total } = useCart()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const recaptchaRef = useRef<ReCAPTCHA>(null)
@@ -51,8 +52,8 @@ export default function CheckoutPage() {
       return
     }
 
-    const recaptchaToken = recaptchaRef.current?.getValue()
-    if (!recaptchaToken) {
+    const recaptchaToken = MOCK_MODE ? 'mock' : recaptchaRef.current?.getValue()
+    if (!MOCK_MODE && !recaptchaToken) {
       setError('Veuillez confirmer que vous n\'êtes pas un robot.')
       return
     }
@@ -74,7 +75,6 @@ export default function CheckoutPage() {
         }
 
         if (data.formUrl) {
-          clearCart()
           window.location.href = data.formUrl
         } else {
           setError('Impossible d\'obtenir le lien de paiement SATIM.')
@@ -254,13 +254,15 @@ export default function CheckoutPage() {
             </div>
 
             {/* reCAPTCHA */}
-            <div className="mb-4 flex justify-center">
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey={SITE_KEY}
-                hl="fr"
-              />
-            </div>
+            {!MOCK_MODE && (
+              <div className="mb-4 flex justify-center">
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={SITE_KEY}
+                  hl="fr"
+                />
+              </div>
+            )}
 
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { satimConfirmOrder } from '@/lib/satim'
 import { updateOrder, getOrderByOrderNumber } from '@/lib/orders'
 import SendInvoiceEmail from '@/app/components/send-invoice-email'
+import ClearCart from '@/app/components/clear-cart'
 
 interface PageProps {
   searchParams: Promise<{ orderId?: string; order_id?: string }>
@@ -40,6 +41,7 @@ export default async function PaymentReturnPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
+      <ClearCart />
       {/* Header succès */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 mb-6 text-center">
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">

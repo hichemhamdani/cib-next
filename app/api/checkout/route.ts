@@ -31,14 +31,16 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Données de commande manquantes.' }, { status: 400 })
   }
 
-  // Verify reCAPTCHA
-  if (!recaptchaToken) {
-    return Response.json({ error: 'Veuillez confirmer que vous n\'êtes pas un robot.' }, { status: 400 })
-  }
+  // Verify reCAPTCHA (skipped in mock mode)
+  if (process.env.SATIM_MOCK_MODE !== 'true') {
+    if (!recaptchaToken) {
+      return Response.json({ error: 'Veuillez confirmer que vous n\'êtes pas un robot.' }, { status: 400 })
+    }
 
-  const captchaValid = await verifyRecaptcha(recaptchaToken)
-  if (!captchaValid) {
-    return Response.json({ error: 'Vérification anti-bot échouée. Veuillez réessayer.' }, { status: 400 })
+    const captchaValid = await verifyRecaptcha(recaptchaToken)
+    if (!captchaValid) {
+      return Response.json({ error: 'Vérification anti-bot échouée. Veuillez réessayer.' }, { status: 400 })
+    }
   }
 
   if (total < 50) {
