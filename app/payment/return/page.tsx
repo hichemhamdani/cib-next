@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { satimConfirmOrder } from '@/lib/satim'
 import { updateOrder, getOrderByOrderNumber } from '@/lib/orders'
+import SendInvoiceEmail from '@/app/components/send-invoice-email'
 
 interface PageProps {
   searchParams: Promise<{ orderId?: string; order_id?: string }>
@@ -69,7 +70,7 @@ export default async function PaymentReturnPage({ searchParams }: PageProps) {
           <div className="divide-y divide-gray-50">
             {order.items.map(({ product, quantity }) => (
               <div key={product.id} className="flex items-center gap-4 px-6 py-4">
-                <div className="w-12 h-12 bg-linear-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
+                <div className="w-12 h-12 bg-linear-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center text-2xl shrink-0">
                   {product.emoji}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -121,6 +122,41 @@ export default async function PaymentReturnPage({ searchParams }: PageProps) {
               <p className="text-gray-400 text-xs mb-0.5">Adresse</p>
               <p className="font-medium text-gray-800">{order.customer.address}</p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Facture */}
+      {order && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <h2 className="font-semibold text-gray-800 mb-4">Facture</h2>
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <a
+              href={`/api/invoice/${order_id!}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 flex-1 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-sm px-4 py-2.5 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Voir la facture
+            </a>
+            <a
+              href={`/api/invoice/${order_id!}?download=true`}
+              download
+              className="flex items-center justify-center gap-2 flex-1 border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-sm px-4 py-2.5 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Télécharger
+            </a>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 mb-2">Envoyer par email</p>
+            <SendInvoiceEmail orderId={order_id!} defaultEmail={order.customer.email} />
           </div>
         </div>
       )}
